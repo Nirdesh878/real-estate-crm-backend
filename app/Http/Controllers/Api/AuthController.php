@@ -11,6 +11,23 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    private function tokenExpiresAt(): ?\DateTimeInterface
+    {
+        $minutes = env('SANCTUM_TOKEN_EXPIRATION');
+
+        if (! is_numeric($minutes)) {
+            return null;
+        }
+
+        $m = (int) $minutes;
+
+        if ($m <= 0) {
+            return null;
+        }
+
+        return now()->addMinutes($m);
+    }
+
     public function register(Request $request)
     {
         $data = $request->validate([
@@ -26,7 +43,7 @@ class AuthController extends Controller
             'role_id' => User::ROLE_USER,
         ]);
 
-        $token = $user->createToken('react')->plainTextToken;
+        $token = $user->createToken('react', ['*'], $this->tokenExpiresAt())->plainTextToken;
 
         return response()->json([
             'token' => $token,
@@ -49,7 +66,7 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('react')->plainTextToken;
+        $token = $user->createToken('react', ['*'], $this->tokenExpiresAt())->plainTextToken;
 
         return response()->json([
             'token' => $token,
