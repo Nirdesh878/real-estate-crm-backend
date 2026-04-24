@@ -1,14 +1,17 @@
-﻿<?php
+<?php
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\LeadIngestController;
+use App\Http\Controllers\Api\LeadImportController;
 use App\Http\Controllers\Api\LeadsController;
 use App\Http\Controllers\Api\LeadStatusesController;
 use App\Http\Controllers\Api\MenusController;
+use App\Http\Controllers\Api\MetaLeadsController;
 use App\Http\Controllers\Api\MetaLeadWebhookController;
 use App\Http\Controllers\Api\PermissionsController;
 use App\Http\Controllers\Api\RolesController;
 use App\Http\Controllers\Api\UsersController;
+use App\Http\Controllers\Api\WhatsappController;
 use App\Models\MstMenu;
 use App\Models\MstPermission;
 use Illuminate\Http\Request;
@@ -20,9 +23,16 @@ Route::post('/login', [AuthController::class, 'login']);
 // Public lead capture (landing pages)
 Route::post('/leads/ingest', [LeadIngestController::class, 'ingest']);
 
+// Excel import template (downloadable sample)
+Route::get('/leads/import-template', [LeadImportController::class, 'template']);
+
 // Meta Lead Ads webhook
 Route::get('/webhooks/meta/leadgen', [MetaLeadWebhookController::class, 'verify']);
 Route::post('/webhooks/meta/leadgen', [MetaLeadWebhookController::class, 'handle']);
+
+// Meta Lead Ads webhook (production-friendly path)
+Route::get('/meta/webhook', [MetaLeadWebhookController::class, 'verify']);
+Route::post('/meta/webhook', [MetaLeadWebhookController::class, 'handle']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', function (Request $request) {
@@ -75,9 +85,23 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/lead-statuses/{leadStatus}', [LeadStatusesController::class, 'update']);
         Route::delete('/lead-statuses/{leadStatus}', [LeadStatusesController::class, 'destroy']);
 
+        // Lead Import
+        Route::post('/leads/import', [LeadImportController::class, 'import']);
+
+        // Meta Lead Ads (admin test helper)
+        Route::post('/meta-leads/sync/{leadgenId}', [MetaLeadWebhookController::class, 'testSync']);
+        Route::post('/meta-leads/pull', [MetaLeadsController::class, 'pull']);
+        Route::post('/meta-leads/refresh', [MetaLeadsController::class, 'refresh'])->middleware('throttle:meta-refresh');
+        Route::get('/meta-leads/forms', [MetaLeadsController::class, 'forms']);
+        Route::get('/meta-leads/status', [MetaLeadsController::class, 'status']);
+
+        // WhatsApp campaign (manual, from UI)
+        Route::post('/whatsapp/refresh-campaign/send', [WhatsappController::class, 'sendRefreshCampaign'])->middleware('throttle:whatsapp-send');
+
         // Leads
         Route::get('/leads', [LeadsController::class, 'index']);
         Route::get('/leads/{lead}', [LeadsController::class, 'show']);
+        Route::get('/leads/{lead}/receipt', [LeadsController::class, 'receipt']);
         Route::post('/leads', [LeadsController::class, 'store']);
         Route::put('/leads/{lead}', [LeadsController::class, 'update']);
     });

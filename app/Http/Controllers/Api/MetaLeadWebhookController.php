@@ -3,20 +3,24 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Lead;
+use App\Models\MetaLead;
+use App\SyncMetaLeadJob;
 use App\Services\MetaLeadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Log;
 
 class MetaLeadWebhookController extends Controller
 {
     public function verify(Request $request)
     {
-        $mode = $request->query('hub_mode');
-        $token = $request->query('hub_verify_token');
-        $challenge = $request->query('hub_challenge');
+        // Meta sends `hub.mode`, `hub.verify_token`, `hub.challenge`.
+        // Some proxies/frameworks may surface them as underscores.
+        $mode = $request->query('hub_mode') ?? $request->query('hub.mode');
+        $token = $request->query('hub_verify_token') ?? $request->query('hub.verify_token');
+        $challenge = $request->query('hub_challenge') ?? $request->query('hub.challenge');
 
-        if ($mode === 'subscribe' && $token && $token === env('META_VERIFY_TOKEN')) {
+        if ((string) $mode === 'subscribe' && $token && (string) $token === (string) config('meta.verify_token')) {
             return response((string) $challenge, 200);
         }
 
@@ -31,76 +35,78 @@ class MetaLeadWebhookController extends Controller
 
         $payload = $request->all();
 
+        if ((bool) config('meta.log_payloads')) {
+            Log::info('meta.webhook.received', ['payload' => $payload]);
+        } else {
+            Log::info('meta.webhook.received', [
+                'object' => Arr::get($payload, 'object'),
+                'entry_count' => is_array(Arr::get($payload, 'entry')) ? count((array) Arr::get($payload, 'entry')) : null,
+            ]);
+        }
+
         $entries = Arr::get($payload, 'entry', []);
         foreach ($entries as $entry) {
+            $pageId = (string) (Arr::get($entry, 'id') ?? Arr::get($entry, 'page_id') ?? '');
             $changes = Arr::get($entry, 'changes', []);
             foreach ($changes as $change) {
+                if ((string) Arr::get($change, 'field') !== 'leadgen') {
+                    continue;
+                }
+
                 $value = Arr::get($change, 'value', []);
                 $leadId = (string) Arr::get($value, 'leadgen_id', '');
                 if (! $leadId) continue;
 
-                $existing = Lead::query()->where('meta_lead_id', $leadId)->first();
-                if ($existing) {
+                $context = [
+                    'page_id' => $pageId ?: (string) (Arr::get($value, 'page_id') ?? ''),
+                    'form_id' => (string) (Arr::get($value, 'form_id') ?? ''),
+                    'ad_id' => (string) (Arr::get($value, 'ad_id') ?? ''),
+                    'adgroup_id' => (string) (Arr::get($value, 'adgroup_id') ?? ''),
+                    'campaign_id' => (string) (Arr::get($value, 'campaign_id') ?? ''),
+                    'created_time' => (string) (Arr::get($value, 'created_time') ?? ''),
+                ];
+
+                Log::info('meta.webhook.leadgen', [
+                    'leadgen_id' => $leadId,
+                    'page_id' => $context['page_id'] ?? null,
+                    'form_id' => $context['form_id'] ?? null,
+                ]);
+
+                // Duplicate protection: if we already synced this lead, skip re-fetching.
+                $already = MetaLead::query()->where('leadgen_id', $leadId)->exists();
+                if ($already) {
+                    Log::info('meta.webhook.duplicate_skipped', ['leadgen_id' => $leadId]);
                     continue;
                 }
 
-                $leadData = null;
+                // Fetch+save is deferred to keep webhook response fast.
                 try {
-                    $leadData = $meta->fetchLead($leadId);
+                    SyncMetaLeadJob::dispatch($leadId, $context)->afterResponse();
                 } catch (\Throwable $e) {
-                    // store minimal lead from webhook if fetch fails
+                    Log::error('meta.webhook.dispatch_failed', [
+                        'leadgen_id' => $leadId,
+                        'message' => $e->getMessage(),
+                    ]);
+
+                    // Fallback to sync (still safe to run multiple times due to upserts).
+                    try {
+                        $meta->syncLeadgenId($leadId, $context);
+                    } catch (\Throwable $e2) {
+                        Log::error('meta.webhook.sync_failed', [
+                            'leadgen_id' => $leadId,
+                            'message' => $e2->getMessage(),
+                        ]);
+                    }
                 }
-
-                $fieldData = Arr::get($leadData ?? [], 'field_data', []);
-                $mapped = $this->mapFields($fieldData);
-
-                $metaAdId = (string) (Arr::get($leadData ?? $value, 'ad_id') ?? '');
-                $metaAdsetId = (string) (Arr::get($leadData ?? $value, 'adgroup_id') ?? '');
-                $metaCampaignId = (string) (Arr::get($leadData ?? $value, 'campaign_id') ?? '');
-                $metaFormId = (string) (Arr::get($leadData ?? $value, 'form_id') ?? Arr::get($value, 'form_id') ?? '');
-                $metaPageId = (string) (Arr::get($value, 'page_id') ?? '');
-
-                $fetchNames = (bool) env('META_FETCH_NAMES', false);
-
-                $lead = Lead::create([
-                    'platform' => 'meta',
-                    'lead_source' => 'meta_lead_form',
-                    'meta_lead_id' => $leadId,
-                    'meta_form_id' => $metaFormId ?: null,
-                    'meta_ad_id' => $metaAdId ?: null,
-                    'meta_adset_id' => $metaAdsetId ?: null,
-                    'meta_campaign_id' => $metaCampaignId ?: null,
-                    'meta_page_id' => $metaPageId ?: null,
-
-                    'campaign_name' => $fetchNames && $metaCampaignId ? $meta->fetchName($metaCampaignId) : null,
-                    'ad_set_name' => $fetchNames && $metaAdsetId ? $meta->fetchName($metaAdsetId) : null,
-                    'ad_name' => $fetchNames && $metaAdId ? $meta->fetchName($metaAdId) : null,
-                    'lead_form_name' => $fetchNames && $metaFormId ? $meta->fetchName($metaFormId) : null,
-
-                    'name' => $mapped['name'] ?? null,
-                    'phone' => $mapped['phone'] ?? null,
-                    'email' => $mapped['email'] ?? null,
-                    'city' => $mapped['city'] ?? null,
-
-                    'budget' => $mapped['budget'] ?? null,
-                    'plot_size' => $mapped['plot_size'] ?? null,
-                    'purpose' => $mapped['purpose'] ?? null,
-                    'timeline_to_buy' => $mapped['timeline_to_buy'] ?? null,
-                    'loan_required' => array_key_exists('loan_required', $mapped) ? (bool) $mapped['loan_required'] : null,
-
-                    'qualification' => $mapped['qualification'] ?? null,
-                    'raw_payload' => $payload,
-                    'status' => 'new',
-                ]);
             }
         }
 
-        return response()->noContent();
+        return response()->json(['ok' => true], 200);
     }
 
     private function verifySignature(Request $request): bool
     {
-        $appSecret = env('META_APP_SECRET');
+        $appSecret = (string) config('meta.app_secret');
         if (! $appSecret) {
             // Allow if not configured (dev), but recommended to set.
             return true;
@@ -114,39 +120,16 @@ class MetaLeadWebhookController extends Controller
         return hash_equals($expected, $sigHeader);
     }
 
-    private function mapFields(array $fieldData): array
+    // Admin/test helper: manually fetch + store a lead without waiting for a webhook.
+    public function testSync(Request $request, MetaLeadService $meta, string $leadgenId)
     {
-        $out = [
-            'qualification' => [],
-        ];
+        $saved = $meta->syncLeadgenId($leadgenId, [
+            'page_id' => (string) $request->query('page_id', ''),
+            'form_id' => (string) $request->query('form_id', ''),
+        ]);
 
-        foreach ($fieldData as $item) {
-            $name = (string) Arr::get($item, 'name', '');
-            $values = Arr::get($item, 'values', []);
-            $value = is_array($values) && isset($values[0]) ? (string) $values[0] : null;
-            if (! $name) continue;
-
-            $normalized = strtolower(trim($name));
-
-            $out['qualification'][$normalized] = $values;
-
-            if (in_array($normalized, ['full_name', 'name'], true)) $out['name'] = $value;
-            if (in_array($normalized, ['phone_number', 'phone'], true)) $out['phone'] = $value;
-            if (in_array($normalized, ['email'], true)) $out['email'] = $value;
-            if (in_array($normalized, ['city'], true)) $out['city'] = $value;
-
-            if (str_contains($normalized, 'budget')) {
-                $out['budget'] = $value ? (float) preg_replace('/[^0-9.]/', '', $value) : null;
-            }
-            if (str_contains($normalized, 'plot')) $out['plot_size'] = $value;
-            if (str_contains($normalized, 'investment') || str_contains($normalized, 'self')) $out['purpose'] = $value;
-            if (str_contains($normalized, 'timeline')) $out['timeline_to_buy'] = $value;
-            if (str_contains($normalized, 'loan')) {
-                if ($value === null) continue;
-                $out['loan_required'] = in_array(strtolower($value), ['yes', 'true', '1'], true);
-            }
-        }
-
-        return $out;
+        return response()->json([
+            'meta_lead' => $saved,
+        ]);
     }
 }

@@ -61,6 +61,23 @@ class LeadsController extends Controller
         return $lead->load('assignee:id,name,email');
     }
 
+    public function receipt(Lead $lead)
+    {
+        $lead->load('assignee:id,name,email');
+
+        $html = view('receipts.lead', [
+            'lead' => $lead,
+            'companyName' => (string) config('app.receipt_company_name', config('app.name')),
+        ])->render();
+
+        $filename = 'receipt-lead-'.$lead->id.'.html';
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
     public function store(Request $request)
     {
         $data = $this->validated($request);
@@ -94,6 +111,7 @@ class LeadsController extends Controller
 
             'name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
+            'whatsapp_eligible' => ['nullable', 'boolean'],
             'email' => ['nullable', 'email', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
 
@@ -115,6 +133,18 @@ class LeadsController extends Controller
             'utm_campaign' => ['nullable', 'string', 'max:255'],
             'utm_content' => ['nullable', 'string', 'max:255'],
             'utm_term' => ['nullable', 'string', 'max:255'],
+
+            // Receipt / booking template fields
+            'receipt_no' => ['nullable', 'string', 'max:100'],
+            'receipt_date' => ['nullable', 'date'],
+            'customer_code' => ['nullable', 'string', 'max:100'],
+            'payment_against' => ['nullable', 'string', 'max:255'],
+            'cheque_no' => ['nullable', 'string', 'max:100'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'transaction_description' => ['nullable', 'string'],
+            'transaction_amount' => ['nullable'],
+            'amount_in_words' => ['nullable', 'string', 'max:255'],
+            'receipt_notes' => ['nullable', 'string'],
         ];
 
         $data = $request->validate($rules);
@@ -122,6 +152,11 @@ class LeadsController extends Controller
         if (array_key_exists('budget', $data)) {
             $b = $data['budget'];
             $data['budget'] = is_null($b) ? null : (float) preg_replace('/[^0-9.]/', '', (string) $b);
+        }
+
+        if (array_key_exists('transaction_amount', $data)) {
+            $a = $data['transaction_amount'];
+            $data['transaction_amount'] = is_null($a) ? null : (float) preg_replace('/[^0-9.]/', '', (string) $a);
         }
 
         return $data;
