@@ -1,58 +1,189 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Real Estate CRM - Property Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A full-stack Real Estate Customer Relationship Management (CRM) application developed using Laravel and React.js.
 
-## About Laravel
+This platform helps real estate businesses manage properties, customers, leads, follow-ups, enquiries, and sales activities through a centralized dashboard with secure authentication and role-based access.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 🚀 Features
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
-## Learning Laravel
+### 🔐 Authentication & Authorization
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- Secure user registration and login
+- User session management
+- Protected routes
+- Role based access control
+- Authentication middleware
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 🏠 Property Management
 
-## Agentic Development
+- Add, update and manage property listings
+- Store property details
+- Upload and manage property images
+- Property category management
+- Search and filter properties
+- Property status tracking
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
 
-```bash
-composer require laravel/boost --dev
+### 👥 Customer & Lead Management
 
-php artisan boost:install
-```
+- Create and manage customer records
+- Store customer enquiries
+- Track interested properties
+- Manage customer communication history
+- Lead status management
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
 
-## Contributing
+### 📞 Follow-up Management
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- Schedule customer follow-ups
+- Track pending follow-ups
+- Maintain interaction records
+- Improve sales workflow management
 
-## Code of Conduct
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### ❤️ Favourite / Saved Properties
 
-## Security Vulnerabilities
+- Save interested properties
+- Manage liked property list
+- User specific property preferences
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
-## License
+### 📊 Dashboard
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+- CRM overview dashboard
+- Property statistics
+- Customer statistics
+- Lead tracking
+- Recent activity monitoring
+
+
+### 🔎 Advanced Search
+
+- Property search functionality
+- Filter by category/location/status
+- Optimized database queries
+
+
+## 🛠️ Technology Stack
+
+
+### Backend
+
+- Laravel
+- PHP
+- MySQL
+- REST API Development
+- Laravel Controllers
+- Models & Relationships
+- Middleware
+- Validation
+
+
+### Frontend
+
+- React.js
+- JavaScript
+- React Router
+- Axios
+- Bootstrap / Tailwind CSS
+- Responsive UI Design
+
+
+### Database
+
+- MySQL
+- Database Relationships
+- Query Optimization
+
+
+## 📌 Responsibilities
+
+- Developed complete backend APIs using Laravel
+- Designed database structure and relationships
+- Implemented authentication system
+- Created reusable React components
+- Integrated REST APIs with React frontend
+- Developed property and customer management modules
+- Implemented search and filtering functionality
+- Handled validations and error responses
+- Improved application performance
+
+
+## 📂 Project Architecture
+
+
+Frontend
+
+- React Components
+- Pages
+- Routes
+- API Services
+- State Management
+
+
+Backend
+
+- Controllers
+- Models
+- Middleware
+- API Routes
+- Database Migrations
+
+
+## 📷 Screenshots
+
+<img width="1918" height="901" alt="Screenshot 2026-07-01 154428" src="https://github.com/user-attachments/assets/65202bab-7c22-4f4f-9286-eaff6d65ec67" />
+<img width="1918" height="848" alt="Screenshot 2026-07-01 154446" src="https://github.com/user-attachments/assets/b18a46e9-9f36-4202-a250-2a72d98c11eb" />
+<img width="1913" height="872" alt="Screenshot 2026-07-01 154504" src="https://github.com/user-attachments/assets/bf089bf0-08e2-48bc-bc7b-7ca31c33e052" />
+<img width="1915" height="860" alt="Screenshot 2026-07-01 154318" src="https://github.com/user-attachments/assets/cd80110b-1e1c-4ec9-852d-f917f29f1058" />
+<img width="1908" height="867" alt="Screenshot 2026-07-01 154332" src="https://github.com/user-attachments/assets/df709561-7118-4495-8a1f-0eb4a0798a84" />
+<img width="1912" height="916" alt="Screenshot 2026-07-01 154344" src="https://github.com/user-attachments/assets/3329afbe-b7ea-4867-8694-7d353f37134e" />
+<img width="1918" height="857" alt="Screenshot 2026-07-01 154357" src="https://github.com/user-attachments/assets/d3b87510-868e-468d-8533-b139139139bf" />
+<img width="1913" height="882" alt="Screenshot 2026-07-01 154411" src="https://github.com/user-attachments/assets/b66a2e90-9300-4ce9-8cf3-cda52766815a" />
+
+
+
+Dashboard
+
+Property Management
+
+Customer Management
+
+Lead Tracking
+
+
+## Future Enhancements
+
+- Real time notifications
+- Email integration
+- Payment gateway integration
+- Advanced analytics reports
+- Mobile application support
+
+
+## Developer
+
+**Nirdesh Chauhan**
+
+Full Stack PHP Developer
+
+Experience:
+3+ Years
+
+
+Skills:
+
+Laravel | PHP | React.js | MySQL | REST API | JavaScript | Git
+
+
+GitHub:
+
+github.com/Nirdesh878
+
+
+LinkedIn:
+
+linkedin.com/in/nirdesh-chauhan-3829a6351
